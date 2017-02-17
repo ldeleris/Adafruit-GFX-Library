@@ -1,4 +1,9 @@
 /*
+***************************************************************************
+Adaptation de la bibliothéque GFX pour STM32L4xx_HAL.
+author: Laurent Deleris.
+Copyright (c) 2017 Laurent Deleris. All rights reserved.
+***************************************************************************
 This is the core graphics library for all our displays, providing a common
 set of graphics primitives (points, lines, circles, etc.).  It needs to be
 paired with a hardware-specific library for each display device we carry
@@ -31,13 +36,23 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef __AVR__
- #include <avr/pgmspace.h>
-#elif defined(ESP8266)
- #include <pgmspace.h>
-#endif
+/* Includes-----------------------------------------------------*/
+#include <string.h>
 #include "Adafruit_GFX.h"
 #include "glcdfont.c"
+
+
+/**
+  * @brief HAL_Adafruit_GFX version V0.1.0
+  */
+#define __HAL_Adafruit_GFX_VERSION_MAJ   (0x01) /*!< [31:24] major version */
+#define __HAL_Adafruit_GFX_VERSION_MIN   (0x01) /*!< [23:16] minor version */
+#define __HAL_Adafruit_GFX_VERSION_PAT   (0x05) /*!< [15:8]  patch version */
+#define __HAL_Adafruit_GFX_VERSION_RC    (0x00) /*!< [7:0]  release candidate */
+#define __HAL_Adafruit_GFX_VERSION       ((__HAL_Adafruit_GFX_VERSION_MAJ << 24)\
+                                         |(__HAL_Adafruit_GFX_VERSION_MIN << 16)\
+										 |(__HAL_Adafruit_GFX_VERSION_PAT << 8 )\
+										 |(__HAL_Adafruit_GFX_VERSION_RC))
 
 // Many (but maybe not all) non-AVR board installs define macros
 // for compatibility with existing PROGMEM-reading AVR code.
@@ -82,6 +97,7 @@ Adafruit_GFX::Adafruit_GFX(int16_t w, int16_t h):
   wrap      = true;
   _cp437    = false;
   gfxFont   = NULL;
+  buffer = (uint8_t*)malloc((WIDTH * HEIGHT / 8) * sizeof(uint8_t));
 }
 
 // Draw a circle outline
@@ -466,12 +482,7 @@ void Adafruit_GFX::drawXBitmap(int16_t x, int16_t y,
   }
 }
 
-#if ARDUINO >= 100
 size_t Adafruit_GFX::write(uint8_t c) {
-#else
-void Adafruit_GFX::write(uint8_t c) {
-#endif
-
   if(!gfxFont) { // 'Classic' built-in font
 
     if(c == '\n') {
@@ -516,9 +527,8 @@ void Adafruit_GFX::write(uint8_t c) {
     }
 
   }
-#if ARDUINO >= 100
+
   return 1;
-#endif
 }
 
 // Draw a character
@@ -639,7 +649,7 @@ void Adafruit_GFX::setTextColor(uint16_t c, uint16_t b) {
   textbgcolor = b;
 }
 
-void Adafruit_GFX::setTextWrap(boolean w) {
+void Adafruit_GFX::setTextWrap(bool w) {
   wrap = w;
 }
 
@@ -670,7 +680,7 @@ void Adafruit_GFX::setRotation(uint8_t x) {
 // with the erroneous character indices.  By default, the library uses the
 // original 'wrong' behavior and old sketches will still work.  Pass 'true'
 // to this function to use correct CP437 character values in your code.
-void Adafruit_GFX::cp437(boolean x) {
+void Adafruit_GFX::cp437(bool x) {
   _cp437 = x;
 }
 
@@ -780,6 +790,7 @@ void Adafruit_GFX::getTextBounds(char *str, int16_t x, int16_t y,
 }
 
 // Same as above, but for PROGMEM strings
+/*
 void Adafruit_GFX::getTextBounds(const __FlashStringHelper *str,
  int16_t x, int16_t y, int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h) {
   uint8_t *s = (uint8_t *)str, c;
@@ -868,7 +879,7 @@ void Adafruit_GFX::getTextBounds(const __FlashStringHelper *str,
 
   } // End classic vs custom font
 }
-
+*/
 // Return the size of the display (per current rotation)
 int16_t Adafruit_GFX::width(void) const {
   return _width;
@@ -878,7 +889,7 @@ int16_t Adafruit_GFX::height(void) const {
   return _height;
 }
 
-void Adafruit_GFX::invertDisplay(boolean i) {
+void Adafruit_GFX::invertDisplay(bool i) {
   // Do nothing, must be subclassed if supported by hardware
 }
 
@@ -907,7 +918,7 @@ void Adafruit_GFX_Button::initButton(
   _label[9] = 0;
 }
 
-void Adafruit_GFX_Button::drawButton(boolean inverted) {
+void Adafruit_GFX_Button::drawButton(bool inverted) {
   uint16_t fill, outline, text;
 
   if(!inverted) {
@@ -929,20 +940,20 @@ void Adafruit_GFX_Button::drawButton(boolean inverted) {
   _gfx->print(_label);
 }
 
-boolean Adafruit_GFX_Button::contains(int16_t x, int16_t y) {
+bool Adafruit_GFX_Button::contains(int16_t x, int16_t y) {
   if ((x < (_x - _w/2)) || (x > (_x + _w/2))) return false;
   if ((y < (_y - _h/2)) || (y > (_y + _h/2))) return false;
   return true;
 }
 
-void Adafruit_GFX_Button::press(boolean p) {
+void Adafruit_GFX_Button::press(bool p) {
   laststate = currstate;
   currstate = p;
 }
 
-boolean Adafruit_GFX_Button::isPressed() { return currstate; }
-boolean Adafruit_GFX_Button::justPressed() { return (currstate && !laststate); }
-boolean Adafruit_GFX_Button::justReleased() { return (!currstate && laststate); }
+bool Adafruit_GFX_Button::isPressed() { return currstate; }
+bool Adafruit_GFX_Button::justPressed() { return (currstate && !laststate); }
+bool Adafruit_GFX_Button::justReleased() { return (!currstate && laststate); }
 
 // -------------------------------------------------------------------------
 
@@ -978,7 +989,7 @@ uint8_t* GFXcanvas1::getBuffer(void) {
 
 void GFXcanvas1::drawPixel(int16_t x, int16_t y, uint16_t color) {
   // Bitmask tables of 0x80>>X and ~(0x80>>X), because X>>Y is slow on AVR
-  static const uint8_t PROGMEM
+  static const uint8_t
     GFXsetBit[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 },
     GFXclrBit[] = { 0x7F, 0xBF, 0xDF, 0xEF, 0xF7, 0xFB, 0xFD, 0xFE };
 
@@ -1069,3 +1080,12 @@ void GFXcanvas16::fillScreen(uint16_t color) {
   }
 }
 
+
+/**
+  * @brief  This method returns the Adafruit_GFX revision
+  * @retval version : 0xXYZR (8bits for each decimal, R for RC)
+  */
+uint32_t Adafruit_GFX::GetVersion(void)
+{
+  return __HAL_Adafruit_GFX_VERSION;
+}
